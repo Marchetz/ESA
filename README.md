@@ -2,11 +2,11 @@
 
 
 ## Installation
-to create environment: ```bash python3 -m venv esa```
+to create environment: ``` python3 -m venv esa```
 
-to load environment: ```bash source esa/bin/activate```
+to load environment: ``` source esa/bin/activate```
 
-to install packages: ```bash pip install -r requirements_ok.txt```
+to install packages: ``` pip install -r requirements_ok.txt```
 
 
 ## Dataset
