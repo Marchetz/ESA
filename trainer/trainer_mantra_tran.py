@@ -82,6 +82,10 @@ class Trainer:
         # load pretrained model and create memory_model
         # self.mem_n2n = torch.load(config.model)
 
+        #comment: questo è un trick per risolvere un problema che avevo:
+        # avevo addestrato il vecchio mantra con un environment vecchio con versioni vecchie di pytorch
+        # le versioni nuove non accettano modelli addestrati con una versione di pytorch vecchia (mi pare prima delle 1.4 ci sono problemi sulle RNN)
+        # quindi per caricare i pesi dei moduli di MANTRA, come ad esempio gli encoder e i decoder ho fatto così
         self.model = torch.load(config.model)
         self.mem_n2n = model_tran(self.settings, self.model)
         self.save_plot_weight('before')
@@ -150,6 +154,7 @@ class Trainer:
         config = self.config
 
         # freeze autoencoder layers
+        #comment: non faccio passare il gradiente su certi layer perchè sono già stati addestrati e non voglio che vengano modificati
         for param in self.mem_n2n.conv_past.parameters():
             param.requires_grad = False
         for param in self.mem_n2n.conv_fut.parameters():
@@ -191,6 +196,7 @@ class Trainer:
 
             ###############
             #self._memory_writing(self.config.saved_memory)
+            #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
             self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))

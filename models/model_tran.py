@@ -143,6 +143,7 @@ class model_tran(nn.Module):
         present_temp = past[:, -1].unsqueeze(1).type(torch.float16)
 
         # past temporal encoding
+        # comment: la traiettoria viene codificata dentro una feature tramite l'encoder
         past = torch.transpose(past, 1, 2)
         story_embed = self.relu(self.conv_past(past))
         story_embed = torch.transpose(story_embed, 1, 2)
@@ -160,6 +161,8 @@ class model_tran(nn.Module):
             info_future = self.memory_fut[ind].unsqueeze(0)
         else:
             # ESA CONTROLLER #################################################
+            #TODO: ECCO, VOI DOVETE AGIRE IN QUESTO PEZZO
+            #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
             #use a MultiheadAttention
             query = state_past
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
@@ -181,6 +184,9 @@ class model_tran(nn.Module):
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
+
+        #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
+        # quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         info_total = torch.cat((state_past, info_future), 2)
         input_dec = info_total
         state_dec = zero_padding
@@ -193,6 +199,8 @@ class model_tran(nn.Module):
             input_dec = zero_padding
 
         # IRM
+        # comment: il modulo Iterative refinement serve per spostare quelle predizioni generate che vanno fuori strada dentro la strada
+        # In teoria, non lo dovreste toccare!
         if scene is not None:
             # scene encoding
             scene = scene.permute(0, 3, 1, 2)
@@ -217,7 +225,11 @@ class model_tran(nn.Module):
 
         prediction = prediction.view(dim_batch, self.num_prediction, self.future_len, 2)
 
+
+        #comment: IMPORTANTE, in fase di training, passo anche la feature del futuro perchè voglio popolare la memoria mentre addestro il controllore di lettura
+        # in fase di test, non passo la feature del futuro perchè non voglio scrivere niente in memoria in questa fase
         if future is not None:
+            # questo è il procedimento di scrittura descritto nel paper MANTRA
             future_rep = future.unsqueeze(1).repeat(1, self.num_prediction, 1, 1)
             distances = torch.norm(prediction - future_rep, dim=3)
             for step in range(future.shape[1]):
@@ -260,7 +272,10 @@ class model_tran(nn.Module):
         :param past: past trajectory
         :param future: future trajectory
         """
-
+        #comment: questa funzione viene usata nella fase di valutazione di un modello dopo averlo addestrato
+        #prima del test vero e proprio, prendiamo il dataset di train e lo osserviamo tutto e riempiamo la memoria
+        # fatto una volta, possiamo procedere a testare il modello
+        # non è obbligatorio farlo, possiamo portarci dietro la memoria creata alla fine dell'addestramento
         if (self.memory_past.shape[0] < self.num_prediction):
             num_prediction = self.memory_past.shape[0]
         else:
