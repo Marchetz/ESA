@@ -8,6 +8,13 @@ to load environment: ``` source esa/bin/activate```
 
 to install packages: ``` pip install -r requirements_ok.txt```
 
+On Windows:
+to create environment: ``` python -m venv esa```
+
+to load environment: ``` esa/scripts/activate```
+
+to install packages: ``` pip install -r requirements_ok.txt```
+
 
 ## Dataset
 We provide a dataloader for the KITTI dataset in *dataset_invariance.py*. The dataloader yields samples of (past, future) trajectories paired with a semantic map of the surrounding scene.
