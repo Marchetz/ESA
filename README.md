@@ -2,6 +2,8 @@
 
 
 ## Installation
+
+On Linux:
 to create environment: ``` python3 -m venv esa```
 
 to load environment: ``` source esa/bin/activate```
