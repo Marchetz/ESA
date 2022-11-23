@@ -2,6 +2,7 @@ import argparse
 from trainer import trainer_mantra_tran
 
 
+
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=True)

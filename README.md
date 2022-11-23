@@ -28,7 +28,7 @@ Trainings can be monitored using tensorboard, logs are stored in the folder *run
 In the *pretrained_model* folder there are pretrained models.
 
 ```bash
-python train_tran.py
+python train_mantra_tran.py
 ```
 
 

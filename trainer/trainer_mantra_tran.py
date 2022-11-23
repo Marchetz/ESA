@@ -28,7 +28,6 @@ class Trainer:
         Trainer class for training the MANTRA + ESA
         :param config: configuration parameters (see train_mantra_tran.py)
         """
-
         self.index_qualitative = index_qualitative.dict_test
         self.name_run = 'runs/runs_tran/'
         self.name_test = str(datetime.datetime.now())[:19]
@@ -89,7 +88,7 @@ class Trainer:
         self.model = torch.load(config.model)
         self.mem_n2n = model_tran(self.settings, self.model)
         self.save_plot_weight('before')
-        self.mem_n2n.load_state_dict(torch.load('model_pretrained'), strict=False)
+        #self.mem_n2n.load_state_dict(torch.load('/home/lgianassi/ESA/pretrained_models/MANTRA/model_pretrained'), strict=False)
         self.save_plot_weight('after')
         self.mem_n2n.past_len = config.past_len
         self.mem_n2n.future_len = config.future_len

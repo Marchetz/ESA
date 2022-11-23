@@ -75,6 +75,12 @@ class model_tran(nn.Module):
         self.linear1 = nn.Linear(48,100)
         self.linear2 = nn.Linear(100,48)
         #self.reset_parameters()
+        
+        
+        # Transformer Model
+        self.transformer_model = nn.Transformer(d_model=96, nhead=16, num_encoder_layers=12).cuda()
+            
+       
 
     def reset_parameters(self):
         nn.init.kaiming_normal_(self.RNN_scene.weight_ih_l0)
@@ -167,6 +173,56 @@ class model_tran(nn.Module):
             query = state_past
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
+            
+            print("dim memory_past", self.memory_past.shape)
+            print("dim memory_fut", self.memory_fut.shape)
+            
+            
+            ############################################
+            print("dim key", key.shape)
+                        #NEL TRAIN dim key torch.Size([20, 32, 48])
+
+            print("dim value", value.shape)
+                        #NEL TRAIN dim value torch.Size([20, 32, 48])
+            
+            
+            # source key + value concatenati
+            src = torch.cat((key, value), -1).cuda()
+
+            #one hot encoding per ottenere embedding con il passato
+            one_hot = F.one_hot(torch.arange(0,key.shape[0]*key.shape[1]).view(key.shape[0],key.shape[1]) % key.shape[2]).to("cuda:0")
+
+            tgt = torch.cat((key,one_hot), -1).cuda()
+            
+            #print("src", src.shape)
+            #print("one_hot", one_hot.shape)
+            #print("tgt", tgt.shape)
+
+            # concatenare  i valori di key vale per quanto riguarda la source 
+            # key da concatenare con embedding di tipo one hot encoding 
+
+
+            #print("dim source", src.shape)
+
+            output_prova = self.transformer_model(src, tgt)
+            
+            output_prova = torch.tensor(output_prova)
+            
+            outp = []
+            
+            outp.append(output_prova)
+            
+            output_prova2 = torch.cat(outp).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
+            
+            #output_prova = torch.cat(output_prova).reshape(-1, src.shape[1]).unsqueeze(0)
+            
+            
+            print("output prova", output_prova2.shape)
+            
+            output_prova
+                        
+            #out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
+            ###############################################################            
 
             out = []
             out_weight = []
@@ -176,27 +232,70 @@ class model_tran(nn.Module):
                 #out_single = nn.Tanh()(self.linear2(self.relu(self.linear1(out_single))))
                 out.append(out_single)
                 out_weight.append(attn_output_weights_single)
+                #print(out_single.shape)
+            #print("out", len(out))
+            
+            # Out di dimensione 20 con elementi [1, 32, 48]
             info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
-            out_weight = torch.stack(out_weight).permute(1, 0, 2, 3)
+            print("info_future", info_future.shape)
+             # size [1, 640, 48]
+            #print("output prova", output_prova.shape)
+            #out_weight = torch.stack(out_weight).permute(1, 0, 2, 3)
 
             ######################################################################################
+            
+            
+        #COME MAI KEY e VALUE CRESCONO IN MODO ITERATIVO?
+        # dim memory_past torch.Size([205, 48])
+        # dim memory_fut torch.Size([205, 48])
+        # dim key torch.Size([205, 5, 48])
+        # dim value torch.Size([205, 5, 48])
+        # output prova torch.Size([1, 2050, 48])
+        # info_future torch.Size([1, 100, 48])
+        # state_past torch.Size([1, 100, 48])
+        # info_total torch.Size([1, 100, 96])
+        
+        # dim memory_past torch.Size([209, 48])
+        # dim memory_fut torch.Size([209, 48])
+        # dim key torch.Size([209, 5, 48])
+        # dim value torch.Size([209, 5, 48])
+        # output prova torch.Size([1, 2090, 48])
+        # info_future torch.Size([1, 100, 48])
+        # state_past torch.Size([1, 100, 48])
+        # info_total torch.Size([1, 100, 96])
+        
+        #COME POSSSO REPLICARE IL LAVORO SVOLTO DA MULTIHEAD PER LA DIMENSIONE FISSA ALTRIMENTI COME GESTISCO INFO_TOTAL ITERATIVAMENTE
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
+        
+        
+        
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
 
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         # quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
+        
+        print("state_past", state_past.shape)  # size [1, 640, 48]
+        #print("info_future", info_future.shape)  # size [1, 640, 48]
+        
         info_total = torch.cat((state_past, info_future), 2)
+        # size [1, 640, 96]
+        print("info_total", info_total.shape)
+        
         input_dec = info_total
         state_dec = zero_padding
         for i in range(self.future_len):
             output_decoder, state_dec = self.decoder(input_dec, state_dec)
             displacement_next = self.FC_output(output_decoder)
             coords_next = present + displacement_next.squeeze(0).unsqueeze(1)
+            
             prediction = torch.cat((prediction, coords_next), 1)
+            
             present = coords_next
             input_dec = zero_padding
+
+        
 
         # IRM
         # comment: il modulo Iterative refinement serve per spostare quelle predizioni generate che vanno fuori strada dentro la strada
@@ -330,7 +429,7 @@ class model_tran(nn.Module):
             present = coords_next
             input_dec = zero_padding
 
-        # Iteratively refine predictions using context
+        # Iteratively refine predictions using context 
         if scene is not None:
             # scene encoding
             scene = scene.permute(0, 3, 1, 2)
