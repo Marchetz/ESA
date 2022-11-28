@@ -78,7 +78,9 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, nhead=16, num_encoder_layers=12).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48).cuda()
+        #la dimensione della feature di info_future è 48
+        #d_model: number of expected features
             
        
 
@@ -173,10 +175,18 @@ class model_tran(nn.Module):
             query = state_past
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
-            
+            #torch.unsqueeze(input, dim) → Tensor   Returns a new tensor with a dimension of size one inserted at the specified position.
+            #Tensor.repeat(*sizes) → Tensor         Repeats this tensor along the specified dimensions.
+
+                #DOPO UNSQUEZZE torch.Size([20, 1, 48])
+                #DOPO REPEAT    torch.Size([20, 32[dim_batch], 48])
+                
             print("dim memory_past", self.memory_past.shape)
             print("dim memory_fut", self.memory_fut.shape)
-            
+                        #NEL TRAIN dim memory_past torch.Size([20, 48])
+                        #          dim memory_fut torch.Size([20, 48])
+                        
+            #PRIMA DOMANDA: La dimensione del batch va ad influenzare?            
             
             ############################################
             print("dim key", key.shape)
@@ -188,15 +198,24 @@ class model_tran(nn.Module):
             
             # source key + value concatenati
             src = torch.cat((key, value), -1).cuda()
+                        #NEL TRAIN dim src torch.Size([20, 32, 96])
+                        
+                        #responsabile del d_module nel transformer
+                        
+            #SECONDA DOMANDA: va bene farla sulla dimensione -1?
 
             #one hot encoding per ottenere embedding con il passato
             one_hot = F.one_hot(torch.arange(0,key.shape[0]*key.shape[1]).view(key.shape[0],key.shape[1]) % key.shape[2]).to("cuda:0")
+            
+                        #NEL TRAIN one_hot torch.Size([20, 32, 48])
 
             tgt = torch.cat((key,one_hot), -1).cuda()
             
-            #print("src", src.shape)
-            #print("one_hot", one_hot.shape)
-            #print("tgt", tgt.shape)
+                        #NEL TRAIN tgt torch.Size([20, 32, 96])
+            
+            print("src", src.shape)
+            print("one_hot", one_hot.shape)
+            print("tgt", tgt.shape)
 
             # concatenare  i valori di key vale per quanto riguarda la source 
             # key da concatenare con embedding di tipo one hot encoding 
@@ -208,20 +227,12 @@ class model_tran(nn.Module):
             
             output_prova = torch.tensor(output_prova)
             
-            outp = []
+            print("output_prova", output_prova.shape)
+                            #NEL TRAIN output_prova torch.Size([20, 32, 96])
+
+            #SAPPIAMO: che il transformer deve essere grande quando info_future
+            #fully connected layer per far diminuire la dimensione
             
-            outp.append(output_prova)
-            
-            output_prova2 = torch.cat(outp).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
-            
-            #output_prova = torch.cat(output_prova).reshape(-1, src.shape[1]).unsqueeze(0)
-            
-            
-            print("output prova", output_prova2.shape)
-            
-            output_prova
-                        
-            #out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
             ###############################################################            
 
             out = []
@@ -238,9 +249,7 @@ class model_tran(nn.Module):
             # Out di dimensione 20 con elementi [1, 32, 48]
             info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
             print("info_future", info_future.shape)
-             # size [1, 640, 48]
-            #print("output prova", output_prova.shape)
-            #out_weight = torch.stack(out_weight).permute(1, 0, 2, 3)
+                        #NEL TRAIN info_future torch.Size([1, 640, 48])
 
             ######################################################################################
             
@@ -276,12 +285,14 @@ class model_tran(nn.Module):
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         # quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
-        print("state_past", state_past.shape)  # size [1, 640, 48]
-        #print("info_future", info_future.shape)  # size [1, 640, 48]
+        print("state_past", state_past.shape)  
+                            #NEL TRAIN state_past torch.Size([1, 640, 48])
         
         info_total = torch.cat((state_past, info_future), 2)
-        # size [1, 640, 96]
+
         print("info_total", info_total.shape)
+                            #NEL TRAIN info_total torch.Size([1, 640, 96])
+
         
         input_dec = info_total
         state_dec = zero_padding
