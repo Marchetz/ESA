@@ -19,7 +19,7 @@ class model_tran(nn.Module):
         self.use_cuda = settings["use_cuda"]
         self.dim_embedding_key = settings["dim_embedding_key"]
         self.num_prediction = settings["num_prediction"]
-        self.past_len = settings["past_len"]
+        self.past_len = settings["past_len"] 
         self.future_len = settings["future_len"]
         self.model_classic_flag = settings["model_classic_flag"]
 
@@ -173,20 +173,21 @@ class model_tran(nn.Module):
             #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
             #use a MultiheadAttention
             query = state_past
+            print("query", query.shape)
+                #NEL TRAIN query torch.Size([1, 32, 48])
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
             #torch.unsqueeze(input, dim) → Tensor   Returns a new tensor with a dimension of size one inserted at the specified position.
             #Tensor.repeat(*sizes) → Tensor         Repeats this tensor along the specified dimensions.
-
+            
                 #DOPO UNSQUEZZE torch.Size([20, 1, 48])
                 #DOPO REPEAT    torch.Size([20, 32[dim_batch], 48])
-                
+                  
             print("dim memory_past", self.memory_past.shape)
             print("dim memory_fut", self.memory_fut.shape)
                         #NEL TRAIN dim memory_past torch.Size([20, 48])
                         #          dim memory_fut torch.Size([20, 48])
-                        
-            #PRIMA DOMANDA: La dimensione del batch va ad influenzare?            
+                                 
             
             ############################################
             print("dim key", key.shape)
@@ -202,19 +203,26 @@ class model_tran(nn.Module):
                         
                         #responsabile del d_module nel transformer
                         
-            #SECONDA DOMANDA: va bene farla sulla dimensione -1?
 
             #one hot encoding per ottenere embedding con il passato
-            one_hot = F.one_hot(torch.arange(0,key.shape[0]*key.shape[1]).view(key.shape[0],key.shape[1]) % key.shape[2]).to("cuda:0")
+            #one_hot = F.one_hot(torch.arange(0,key.shape[0]*key.shape[1]).view(key.shape[0],key.shape[1]) % key.shape[2]).to("cuda:0")
             
+            embedding = nn.Embedding(20, 48, max_norm=True).repeat(1, dim_batch, 1)
+            
+            print("embedding", embedding)
+            #print("embedding_dim", embedding)
                         #NEL TRAIN one_hot torch.Size([20, 32, 48])
+            # plt.imshow(one_hot[:,0,:].detach().cpu())
+            # plt.show()
+            
+            tgt_query = query.repeat(20,1,1)
 
-            tgt = torch.cat((key,one_hot), -1).cuda()
+            tgt = torch.cat((tgt_query,embedding), -1).cuda()
             
                         #NEL TRAIN tgt torch.Size([20, 32, 96])
             
             print("src", src.shape)
-            print("one_hot", one_hot.shape)
+            #print("one_hot", one_hot.shape)
             print("tgt", tgt.shape)
 
             # concatenare  i valori di key vale per quanto riguarda la source 
@@ -252,27 +260,7 @@ class model_tran(nn.Module):
                         #NEL TRAIN info_future torch.Size([1, 640, 48])
 
             ######################################################################################
-            
-            
-        #COME MAI KEY e VALUE CRESCONO IN MODO ITERATIVO?
-        # dim memory_past torch.Size([205, 48])
-        # dim memory_fut torch.Size([205, 48])
-        # dim key torch.Size([205, 5, 48])
-        # dim value torch.Size([205, 5, 48])
-        # output prova torch.Size([1, 2050, 48])
-        # info_future torch.Size([1, 100, 48])
-        # state_past torch.Size([1, 100, 48])
-        # info_total torch.Size([1, 100, 96])
-        
-        # dim memory_past torch.Size([209, 48])
-        # dim memory_fut torch.Size([209, 48])
-        # dim key torch.Size([209, 5, 48])
-        # dim value torch.Size([209, 5, 48])
-        # output prova torch.Size([1, 2090, 48])
-        # info_future torch.Size([1, 100, 48])
-        # state_past torch.Size([1, 100, 48])
-        # info_total torch.Size([1, 100, 96])
-        
+              
         #COME POSSSO REPLICARE IL LAVORO SVOLTO DA MULTIHEAD PER LA DIMENSIONE FISSA ALTRIMENTI COME GESTISCO INFO_TOTAL ITERATIVAMENTE
 
         # DECODING
