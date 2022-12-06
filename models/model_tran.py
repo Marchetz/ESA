@@ -109,6 +109,7 @@ class model_tran(nn.Module):
         """
 
         self.memory_past = torch.Tensor().cuda().type(torch.float16)
+        print(self.memory_past.shape)
         self.memory_fut = torch.Tensor().cuda().type(torch.float16)
 
         for i in range(self.num_prediction):
@@ -205,24 +206,29 @@ class model_tran(nn.Module):
                         
 
             #one hot encoding per ottenere embedding con il passato
-            #one_hot = F.one_hot(torch.arange(0,key.shape[0]*key.shape[1]).view(key.shape[0],key.shape[1]) % key.shape[2]).to("cuda:0")
+            one_hot = F.one_hot(torch.arange(0,self.memory_past.shape[0]*query.shape[1]).view(self.memory_past.shape[0],query.shape[1]) % query.shape[2]).to("cuda:0")
             
-            embedding = nn.Embedding(20, 48, max_norm=True).repeat(1, dim_batch, 1)
+            print("one_hot", one_hot.shape)
             
-            print("embedding", embedding)
+            #embedding = nn.Embedding(20, 48, max_norm=True).cuda
+            
+            
+            
             #print("embedding_dim", embedding)
                         #NEL TRAIN one_hot torch.Size([20, 32, 48])
             # plt.imshow(one_hot[:,0,:].detach().cpu())
             # plt.show()
             
-            tgt_query = query.repeat(20,1,1)
-
-            tgt = torch.cat((tgt_query,embedding), -1).cuda()
+            tgt_query = query.repeat(self.memory_past.shape[0],1,1).cuda()
+            
+            print(tgt_query.shape)
+            
+            tgt = torch.cat((tgt_query,one_hot), -1).cuda()
             
                         #NEL TRAIN tgt torch.Size([20, 32, 96])
             
             print("src", src.shape)
-            #print("one_hot", one_hot.shape)
+            
             print("tgt", tgt.shape)
 
             # concatenare  i valori di key vale per quanto riguarda la source 
@@ -230,6 +236,8 @@ class model_tran(nn.Module):
 
 
             #print("dim source", src.shape)
+            
+            self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48).cuda()
 
             output_prova = self.transformer_model(src, tgt)
             
@@ -243,19 +251,22 @@ class model_tran(nn.Module):
             
             ###############################################################            
 
-            out = []
+            # out = []
             out_weight = []
-            for i_m in range(self.num_prediction):
-                out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
-                #out_single = nn.Tanh()(out_single)
-                #out_single = nn.Tanh()(self.linear2(self.relu(self.linear1(out_single))))
-                out.append(out_single)
-                out_weight.append(attn_output_weights_single)
-                #print(out_single.shape)
-            #print("out", len(out))
+            # for i_m in range(self.num_prediction):
+            #     out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
+            #     #out_single = nn.Tanh()(out_single)
+            #     #out_single = nn.Tanh()(self.linear2(self.relu(self.linear1(out_single))))
+            #     out.append(out_single)
+            #     print("roproroor",out_single.shape)
+            #     out_weight.append(attn_output_weights_single)
+            #     #print(out_single.shape)
+            # #print("out", len(out))
             
             # Out di dimensione 20 con elementi [1, 32, 48]
-            info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
+            #info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
+            #info_future = output_prova.unsqueeze(0)
+            info_future = torch.reshape(output_prova, (1,self.memory_past.shape[0]*query.shape[1],96))
             print("info_future", info_future.shape)
                         #NEL TRAIN info_future torch.Size([1, 640, 48])
 
@@ -266,22 +277,27 @@ class model_tran(nn.Module):
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
         
+        linear = nn.Linear(96,48).cuda()
+        
+        info_future = linear(info_future)
+        
+        print("info_future", info_future.shape)
         
         
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
 
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
-        # quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
+        #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
         print("state_past", state_past.shape)  
                             #NEL TRAIN state_past torch.Size([1, 640, 48])
         
         info_total = torch.cat((state_past, info_future), 2)
 
-        print("info_total", info_total.shape)
+        #print("info_total", info_total.shape)
                             #NEL TRAIN info_total torch.Size([1, 640, 96])
 
-        
+        #info_total = output_prova
         input_dec = info_total
         state_dec = zero_padding
         for i in range(self.future_len):
@@ -353,11 +369,11 @@ class model_tran(nn.Module):
             # ablation study: all tracks in memory
             # index_writing = np.where(writing_prob.cpu() > 0)[0]
             index_writing = np.where(writing_prob.cpu() > 0.5)[0]
-            past_to_write = state_past.squeeze()[index_writing]
-            future_to_write = state_fut.squeeze()[index_writing]
+            #past_to_write = state_past.squeeze()[index_writing]
+            #future_to_write = state_fut.squeeze()[index_writing]
 
-            self.memory_past = torch.cat((self.memory_past, past_to_write), 0)
-            self.memory_fut = torch.cat((self.memory_fut, future_to_write), 0)
+            #self.memory_past = torch.cat((self.memory_past, past_to_write), 0)
+            #self.memory_fut = torch.cat((self.memory_fut, future_to_write), 0)
 
             return prediction, out_weight, writing_prob, tolerance_rate
         else:

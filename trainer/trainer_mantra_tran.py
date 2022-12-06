@@ -420,7 +420,7 @@ class Trainer:
                         if config.cuda:
                             past = past.cuda()
                             future = future.cuda()
-                        self.mem_n2n.write_in_memory(past, future)
+                        #self.mem_n2n.write_in_memory(past, future)
 
         # save memory
         # torch.save(self.mem_n2n.memory_past, self.folder_test + 'memory_past.pt')

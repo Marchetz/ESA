@@ -1,5 +1,6 @@
 import argparse
 import evaluate_MemNet
+import torch
 
 
 def parse_config():
@@ -44,6 +45,8 @@ def main(config):
 
 if __name__ == "__main__":
     config = parse_config()
+    print(torch.cuda.is_available())
+    print(torch.__version__)
     main(config)
 
 
