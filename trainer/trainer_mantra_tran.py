@@ -183,7 +183,7 @@ class Trainer:
         # Load memory
         # populate the memory
         start = time.time()
-        #self._memory_writing(self.config.saved_memory)
+        self._memory_writing(self.config.saved_memory)
         #self.writer.add_text('Training Configuration', 'memory size: ' + str(len(self.mem_n2n.memory_past)), 0)
         end = time.time()
         print('writing time: ' + str(end-start))
@@ -194,11 +194,12 @@ class Trainer:
             self.mem_n2n.train()
 
             ###############
-            #self._memory_writing(self.config.saved_memory)
+            self._memory_writing(self.config.saved_memory)
             #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
             self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))
+            print('config.max_epochs', config.max_epochs)
             start = time.time()
             loss = self._train_single_epoch()
             end = time.time()

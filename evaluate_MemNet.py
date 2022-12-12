@@ -326,10 +326,10 @@ class Validator():
                     if self.config.withIRM:
                         scene_one_hot = Variable(scene_one_hot)
                         scene_one_hot = scene_one_hot.cuda()
-                        #self.mem_n2n.write_in_memory(past, future, scene_one_hot)
+                        self.mem_n2n.write_in_memory(past, future, scene_one_hot)
                     #else:
-                        #self.mem_n2n.write_in_memory(past, future)
+                        self.mem_n2n.write_in_memory(past, future)
 
                 # save memory
-                #torch.save(self.mem_n2n.memory_past, self.folder_test + 'memory_past.pt')
-                #torch.save(self.mem_n2n.memory_fut, self.folder_test + 'memory_fut.pt')
+                torch.save(self.mem_n2n.memory_past, self.folder_test + 'memory_past.pt')
+                torch.save(self.mem_n2n.memory_fut, self.folder_test + 'memory_fut.pt')

@@ -30,7 +30,9 @@ class model_tran(nn.Module):
 
         # Memory
         self.memory_past = model_pretrained.memory_past.type(torch.float16)
+        print("1° memory past", self.memory_past)
         self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
+        print("1° memory fut", self.memory_fut)
         self.memory_count = []
 
         channel_in = 2
@@ -109,7 +111,8 @@ class model_tran(nn.Module):
         """
 
         self.memory_past = torch.Tensor().cuda().type(torch.float16)
-        print(self.memory_past.shape)
+        print("valore memory past", self.memory_past)
+        print("shape memory past", self.memory_past.shape)
         self.memory_fut = torch.Tensor().cuda().type(torch.float16)
 
         for i in range(self.num_prediction):
@@ -174,7 +177,7 @@ class model_tran(nn.Module):
             #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
             #use a MultiheadAttention
             query = state_past
-            print("query", query.shape)
+            #print("query", query.shape)
                 #NEL TRAIN query torch.Size([1, 32, 48])
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
@@ -184,17 +187,17 @@ class model_tran(nn.Module):
                 #DOPO UNSQUEZZE torch.Size([20, 1, 48])
                 #DOPO REPEAT    torch.Size([20, 32[dim_batch], 48])
                   
-            print("dim memory_past", self.memory_past.shape)
-            print("dim memory_fut", self.memory_fut.shape)
+            #print("dim memory_past", self.memory_past.shape)
+            #print("dim memory_fut", self.memory_fut.shape)
                         #NEL TRAIN dim memory_past torch.Size([20, 48])
                         #          dim memory_fut torch.Size([20, 48])
                                  
             
             ############################################
-            print("dim key", key.shape)
+            #print("dim key", key.shape)
                         #NEL TRAIN dim key torch.Size([20, 32, 48])
 
-            print("dim value", value.shape)
+            #print("dim value", value.shape)
                         #NEL TRAIN dim value torch.Size([20, 32, 48])
             
             
@@ -208,7 +211,7 @@ class model_tran(nn.Module):
             #one hot encoding per ottenere embedding con il passato
             one_hot = F.one_hot(torch.arange(0,self.memory_past.shape[0]*query.shape[1]).view(self.memory_past.shape[0],query.shape[1]) % query.shape[2]).to("cuda:0")
             
-            print("one_hot", one_hot.shape)
+            #print("one_hot", one_hot.shape)
             
             #embedding = nn.Embedding(20, 48, max_norm=True).cuda
             
@@ -221,15 +224,15 @@ class model_tran(nn.Module):
             
             tgt_query = query.repeat(self.memory_past.shape[0],1,1).cuda()
             
-            print(tgt_query.shape)
+            #print(tgt_query.shape)
             
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
             
                         #NEL TRAIN tgt torch.Size([20, 32, 96])
             
-            print("src", src.shape)
+            #print("src", src.shape)
             
-            print("tgt", tgt.shape)
+            #print("tgt", tgt.shape)
 
             # concatenare  i valori di key vale per quanto riguarda la source 
             # key da concatenare con embedding di tipo one hot encoding 
@@ -243,7 +246,7 @@ class model_tran(nn.Module):
             
             output_prova = torch.tensor(output_prova)
             
-            print("output_prova", output_prova.shape)
+            #print("output_prova", output_prova.shape)
                             #NEL TRAIN output_prova torch.Size([20, 32, 96])
 
             #SAPPIAMO: che il transformer deve essere grande quando info_future
@@ -267,12 +270,11 @@ class model_tran(nn.Module):
             #info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
             #info_future = output_prova.unsqueeze(0)
             info_future = torch.reshape(output_prova, (1,self.memory_past.shape[0]*query.shape[1],96))
-            print("info_future", info_future.shape)
+            #print("info_future", info_future.shape)
                         #NEL TRAIN info_future torch.Size([1, 640, 48])
 
             ######################################################################################
               
-        #COME POSSSO REPLICARE IL LAVORO SVOLTO DA MULTIHEAD PER LA DIMENSIONE FISSA ALTRIMENTI COME GESTISCO INFO_TOTAL ITERATIVAMENTE
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
@@ -281,7 +283,7 @@ class model_tran(nn.Module):
         
         info_future = linear(info_future)
         
-        print("info_future", info_future.shape)
+        #print("info_future", info_future.shape)
         
         
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
@@ -289,7 +291,7 @@ class model_tran(nn.Module):
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
-        print("state_past", state_past.shape)  
+        #print("state_past", state_past.shape)  
                             #NEL TRAIN state_past torch.Size([1, 640, 48])
         
         info_total = torch.cat((state_past, info_future), 2)
