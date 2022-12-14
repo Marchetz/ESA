@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from models.multihead.activation import MultiheadAttention
 import random
 
+
+
 class model_tran(nn.Module):
     """
     Memory Network model with Iterative Refinement Module.
@@ -30,11 +32,13 @@ class model_tran(nn.Module):
 
         # Memory
         self.memory_past = model_pretrained.memory_past.type(torch.float16)
-        print("1° memory past", self.memory_past)
+        #print("1° memory past", self.memory_past)
+        print("memory past", self.memory_past.shape)
         self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
-        print("1° memory fut", self.memory_fut)
+        #print("1° memory fut", self.memory_fut)
+        print("memory fut", self.memory_fut.shape)
         self.memory_count = []
-
+        
         channel_in = 2
         channel_out = 16
         dim_kernel = 3
@@ -111,8 +115,7 @@ class model_tran(nn.Module):
         """
 
         self.memory_past = torch.Tensor().cuda().type(torch.float16)
-        print("valore memory past", self.memory_past)
-        print("shape memory past", self.memory_past.shape)
+        #print("valore memory past", self.memory_past)
         self.memory_fut = torch.Tensor().cuda().type(torch.float16)
 
         for i in range(self.num_prediction):
@@ -139,6 +142,8 @@ class model_tran(nn.Module):
             state_fut = state_fut.squeeze(0)
 
             self.memory_past = torch.cat((self.memory_past, state_past), 0)
+            #print("valore memory past", self.memory_past)
+            print("shape memory past", self.memory_past.shape)
             self.memory_fut = torch.cat((self.memory_fut, state_fut), 0)
 
 
@@ -150,7 +155,7 @@ class model_tran(nn.Module):
         :return: predicted future
         """
         dim_batch = past.size()[0]
-        zero_padding = torch.zeros(1, dim_batch * self.num_prediction, self.dim_embedding_key * 2).cuda()
+        zero_padding = torch.zeros(1, dim_batch * self.memory_past.shape[0], self.dim_embedding_key * 2).cuda()
         prediction = torch.Tensor().cuda().type(torch.float16)
         present_temp = past[:, -1].unsqueeze(1).type(torch.float16)
 
@@ -177,66 +182,32 @@ class model_tran(nn.Module):
             #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
             #use a MultiheadAttention
             query = state_past
-            #print("query", query.shape)
+            print("query", query.shape)
                 #NEL TRAIN query torch.Size([1, 32, 48])
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
-            #torch.unsqueeze(input, dim) → Tensor   Returns a new tensor with a dimension of size one inserted at the specified position.
-            #Tensor.repeat(*sizes) → Tensor         Repeats this tensor along the specified dimensions.
-            
-                #DOPO UNSQUEZZE torch.Size([20, 1, 48])
-                #DOPO REPEAT    torch.Size([20, 32[dim_batch], 48])
-                  
-            #print("dim memory_past", self.memory_past.shape)
-            #print("dim memory_fut", self.memory_fut.shape)
-                        #NEL TRAIN dim memory_past torch.Size([20, 48])
-                        #          dim memory_fut torch.Size([20, 48])
-                                 
-            
-            ############################################
-            #print("dim key", key.shape)
-                        #NEL TRAIN dim key torch.Size([20, 32, 48])
 
-            #print("dim value", value.shape)
-                        #NEL TRAIN dim value torch.Size([20, 32, 48])
-            
-            
+            ############################################
+            print("dim key", key.shape)
+           
             # source key + value concatenati
             src = torch.cat((key, value), -1).cuda()
-                        #NEL TRAIN dim src torch.Size([20, 32, 96])
-                        
-                        #responsabile del d_module nel transformer
-                        
 
             #one hot encoding per ottenere embedding con il passato
             one_hot = F.one_hot(torch.arange(0,self.memory_past.shape[0]*query.shape[1]).view(self.memory_past.shape[0],query.shape[1]) % query.shape[2]).to("cuda:0")
             
-            #print("one_hot", one_hot.shape)
-            
-            #embedding = nn.Embedding(20, 48, max_norm=True).cuda
-            
-            
-            
-            #print("embedding_dim", embedding)
-                        #NEL TRAIN one_hot torch.Size([20, 32, 48])
-            # plt.imshow(one_hot[:,0,:].detach().cpu())
-            # plt.show()
-            
+            print("one_hot", one_hot.shape)
+                                    
             tgt_query = query.repeat(self.memory_past.shape[0],1,1).cuda()
             
             #print(tgt_query.shape)
             
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
             
-                        #NEL TRAIN tgt torch.Size([20, 32, 96])
             
-            #print("src", src.shape)
+            print("src", src.shape)
             
-            #print("tgt", tgt.shape)
-
-            # concatenare  i valori di key vale per quanto riguarda la source 
-            # key da concatenare con embedding di tipo one hot encoding 
-
+            print("tgt", tgt.shape)
 
             #print("dim source", src.shape)
             
@@ -246,7 +217,7 @@ class model_tran(nn.Module):
             
             output_prova = torch.tensor(output_prova)
             
-            #print("output_prova", output_prova.shape)
+            print("output_prova", output_prova.shape)
                             #NEL TRAIN output_prova torch.Size([20, 32, 96])
 
             #SAPPIAMO: che il transformer deve essere grande quando info_future
@@ -266,32 +237,32 @@ class model_tran(nn.Module):
             #     #print(out_single.shape)
             # #print("out", len(out))
             
-            # Out di dimensione 20 con elementi [1, 32, 48]
-            #info_future = torch.cat(out).permute(1,0,2).reshape(-1,self.memory_past.shape[1]).unsqueeze(0)
-            #info_future = output_prova.unsqueeze(0)
             info_future = torch.reshape(output_prova, (1,self.memory_past.shape[0]*query.shape[1],96))
-            #print("info_future", info_future.shape)
-                        #NEL TRAIN info_future torch.Size([1, 640, 48])
+            print("info_future", info_future.shape)
 
             ######################################################################################
               
 
         # DECODING
-        state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
+        print("state_past", state_past.shape)
+        
+        #state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
+        
+        state_past = state_past.repeat_interleave(self.memory_past.shape[0], dim=1)
         
         linear = nn.Linear(96,48).cuda()
         
         info_future = linear(info_future)
         
-        #print("info_future", info_future.shape)
+        print("info_future", info_future.shape)
         
         
-        present = present_temp.repeat_interleave(self.num_prediction, dim=0)
+        present = present_temp.repeat_interleave(self.memory_past.shape[0], dim=0)
 
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
-        #print("state_past", state_past.shape)  
+        print("state_past", state_past.shape)  
                             #NEL TRAIN state_past torch.Size([1, 640, 48])
         
         info_total = torch.cat((state_past, info_future), 2)
@@ -322,7 +293,7 @@ class model_tran(nn.Module):
             scene = scene.permute(0, 3, 1, 2)
             scene_1 = self.convScene_1(scene)
             scene_2 = self.convScene_2(scene_1)
-            scene_2 = scene_2.repeat_interleave(self.num_prediction, dim=0)
+            scene_2 = scene_2.repeat_interleave(self.memory_past.shape[0], dim=0)
 
             # Iteratively refine predictions using context
             for i_refine in range(4):

@@ -196,7 +196,7 @@ class Trainer:
             ###############
             self._memory_writing(self.config.saved_memory)
             #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
-            self.mem_n2n.init_memory(self.data_train)
+            #self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))
             print('config.max_epochs', config.max_epochs)
@@ -204,6 +204,7 @@ class Trainer:
             loss = self._train_single_epoch()
             end = time.time()
             print('info: ' + self.config.info + '___Epoch took: {} Loss: {}'.format(end - start, loss))
+            print('memory size', len(self.mem_n2n.memory_past))
 
             if (epoch + 1) % 10 == 0:
                 # Test model while training
