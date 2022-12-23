@@ -1,5 +1,6 @@
 import argparse
 from trainer import trainer_mantra_tran
+import torch
 
 
 
@@ -12,7 +13,7 @@ def parse_config():
 
     parser.add_argument("--past_len", type=int, default=20)
     parser.add_argument("--future_len", type=int, default=40)
-    parser.add_argument("--preds", type=int, default=20)
+    parser.add_argument("--preds", type=int, default=5)
     parser.add_argument("--dim_embedding_key", type=int, default=48)
     parser.add_argument("--model_classic_flag", type=bool, default=False)
 
@@ -41,4 +42,5 @@ def main(config):
 
 if __name__ == "__main__":
     config = parse_config()
+    print(torch.__version__)
     main(config)

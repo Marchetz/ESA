@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from models.multihead.activation import MultiheadAttention
 import random
+import sys
 
 
 
@@ -32,11 +33,10 @@ class model_tran(nn.Module):
 
         # Memory
         self.memory_past = model_pretrained.memory_past.type(torch.float16)
-        #print("1° memory past", self.memory_past)
-        print("memory past", self.memory_past.shape)
+        self.memory_past_first_shape = self.memory_past.shape
         self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
-        #print("1° memory fut", self.memory_fut)
-        print("memory fut", self.memory_fut.shape)
+        self.memory_fut_first_shape = self.memory_fut.shape
+        
         self.memory_count = []
         
         channel_in = 2
@@ -74,7 +74,7 @@ class model_tran(nn.Module):
         num_heads = 1
         self.multihead_attn = nn.ModuleList([MultiheadAttention(embed_dim, num_heads, kdim=embed_dim, vdim=embed_dim) for i in range(self.num_prediction)])
         self.dropout = nn.Dropout(0.1)
-        self.decoder_layer = nn.TransformerDecoderLayer(d_model=96, nhead=8)
+        self.decoder_layer = nn.TransformerDecoderLayer(d_model=96, nhead=1)
         self.transformer_decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=6)
         self.fc_projector = nn.Linear(96,48)
 
@@ -115,7 +115,7 @@ class model_tran(nn.Module):
         """
 
         self.memory_past = torch.Tensor().cuda().type(torch.float16)
-        #print("valore memory past", self.memory_past)
+        
         self.memory_fut = torch.Tensor().cuda().type(torch.float16)
 
         for i in range(self.num_prediction):
@@ -140,12 +140,13 @@ class model_tran(nn.Module):
 
             state_past = state_past.squeeze(0)
             state_fut = state_fut.squeeze(0)
-
+            
             self.memory_past = torch.cat((self.memory_past, state_past), 0)
-            #print("valore memory past", self.memory_past)
-            print("shape memory past", self.memory_past.shape)
+            self.memory_past_second_shape = self.memory_past.shape
+            
             self.memory_fut = torch.cat((self.memory_fut, state_fut), 0)
-
+            self.memory_fut_second_shape = self.memory_fut.shape
+            
 
     def forward(self, past, scene=None, future=None):
         """
@@ -155,9 +156,10 @@ class model_tran(nn.Module):
         :return: predicted future
         """
         dim_batch = past.size()[0]
-        zero_padding = torch.zeros(1, dim_batch * self.memory_past.shape[0], self.dim_embedding_key * 2).cuda()
+        zero_padding = torch.zeros(1, dim_batch * self.num_prediction, self.dim_embedding_key * 2).cuda()
         prediction = torch.Tensor().cuda().type(torch.float16)
         present_temp = past[:, -1].unsqueeze(1).type(torch.float16)
+
 
         # past temporal encoding
         # comment: la traiettoria viene codificata dentro una feature tramite l'encoder
@@ -181,45 +183,29 @@ class model_tran(nn.Module):
             #TODO: ECCO, VOI DOVETE AGIRE IN QUESTO PEZZO
             #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
             #use a MultiheadAttention
+            
             query = state_past
-            print("query", query.shape)
-                #NEL TRAIN query torch.Size([1, 32, 48])
             key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
             value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
-
+                        
             ############################################
-            print("dim key", key.shape)
+            
            
             # source key + value concatenati
             src = torch.cat((key, value), -1).cuda()
-
+            
             #one hot encoding per ottenere embedding con il passato
-            one_hot = F.one_hot(torch.arange(0,self.memory_past.shape[0]*query.shape[1]).view(self.memory_past.shape[0],query.shape[1]) % query.shape[2]).to("cuda:0")
+            one_hot = F.one_hot(torch.arange(0,self.num_prediction*query.shape[1]).view(self.num_prediction,query.shape[1]) % query.shape[2]).to("cuda:0")
             
-            print("one_hot", one_hot.shape)
-                                    
-            tgt_query = query.repeat(self.memory_past.shape[0],1,1).cuda()
             
-            #print(tgt_query.shape)
-            
+            tgt_query = query.repeat(self.num_prediction,1,1).cuda()
+                      
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
-            
-            
-            print("src", src.shape)
-            
-            print("tgt", tgt.shape)
-
-            #print("dim source", src.shape)
-            
-            self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48).cuda()
 
             output_prova = self.transformer_model(src, tgt)
             
             output_prova = torch.tensor(output_prova)
             
-            print("output_prova", output_prova.shape)
-                            #NEL TRAIN output_prova torch.Size([20, 32, 96])
-
             #SAPPIAMO: che il transformer deve essere grande quando info_future
             #fully connected layer per far diminuire la dimensione
             
@@ -228,49 +214,32 @@ class model_tran(nn.Module):
             # out = []
             out_weight = []
             # for i_m in range(self.num_prediction):
-            #     out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
+            #    out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
             #     #out_single = nn.Tanh()(out_single)
             #     #out_single = nn.Tanh()(self.linear2(self.relu(self.linear1(out_single))))
             #     out.append(out_single)
-            #     print("roproroor",out_single.shape)
             #     out_weight.append(attn_output_weights_single)
-            #     #print(out_single.shape)
             # #print("out", len(out))
             
-            info_future = torch.reshape(output_prova, (1,self.memory_past.shape[0]*query.shape[1],96))
-            print("info_future", info_future.shape)
-
+            info_future = torch.reshape(output_prova, (1,self.num_prediction*query.shape[1],96))
+            
             ######################################################################################
               
 
         # DECODING
-        print("state_past", state_past.shape)
         
-        #state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
-        
-        state_past = state_past.repeat_interleave(self.memory_past.shape[0], dim=1)
+        state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
+        present = present_temp.repeat_interleave(self.num_prediction, dim=0)
         
         linear = nn.Linear(96,48).cuda()
         
         info_future = linear(info_future)
         
-        print("info_future", info_future.shape)
-        
-        
-        present = present_temp.repeat_interleave(self.memory_past.shape[0], dim=0)
-
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
-        print("state_past", state_past.shape)  
-                            #NEL TRAIN state_past torch.Size([1, 640, 48])
-        
         info_total = torch.cat((state_past, info_future), 2)
 
-        #print("info_total", info_total.shape)
-                            #NEL TRAIN info_total torch.Size([1, 640, 96])
-
-        #info_total = output_prova
         input_dec = info_total
         state_dec = zero_padding
         for i in range(self.future_len):
@@ -278,7 +247,7 @@ class model_tran(nn.Module):
             displacement_next = self.FC_output(output_decoder)
             coords_next = present + displacement_next.squeeze(0).unsqueeze(1)
             
-            prediction = torch.cat((prediction, coords_next), 1)
+            prediction = torch.cat((prediction, coords_next), 1)         
             
             present = coords_next
             input_dec = zero_padding
@@ -293,11 +262,12 @@ class model_tran(nn.Module):
             scene = scene.permute(0, 3, 1, 2)
             scene_1 = self.convScene_1(scene)
             scene_2 = self.convScene_2(scene_1)
-            scene_2 = scene_2.repeat_interleave(self.memory_past.shape[0], dim=0)
+            scene_2 = scene_2.repeat_interleave(self.num_prediction, dim=0)
 
             # Iteratively refine predictions using context
             for i_refine in range(4):
                 pred_map = prediction + 90
+
                 pred_map = pred_map.unsqueeze(2)
                 indices = pred_map.permute(0, 2, 1, 3)
                 # rescale between -1 and 1
@@ -309,9 +279,8 @@ class model_tran(nn.Module):
                 output_rnn, state_rnn = self.RNN_scene(output, state_rnn)
                 prediction_refine = self.fc_refine(state_rnn).view(-1, self.future_len, 2)
                 prediction = prediction + prediction_refine
-
+                
         prediction = prediction.view(dim_batch, self.num_prediction, self.future_len, 2)
-
 
         #comment: IMPORTANTE, in fase di training, passo anche la feature del futuro perchè voglio popolare la memoria mentre addestro il controllore di lettura
         # in fase di test, non passo la feature del futuro perchè non voglio scrivere niente in memoria in questa fase
@@ -342,11 +311,11 @@ class model_tran(nn.Module):
             # ablation study: all tracks in memory
             # index_writing = np.where(writing_prob.cpu() > 0)[0]
             index_writing = np.where(writing_prob.cpu() > 0.5)[0]
-            #past_to_write = state_past.squeeze()[index_writing]
-            #future_to_write = state_fut.squeeze()[index_writing]
+            past_to_write = state_past.squeeze()[index_writing]
+            future_to_write = state_fut.squeeze()[index_writing]
 
-            #self.memory_past = torch.cat((self.memory_past, past_to_write), 0)
-            #self.memory_fut = torch.cat((self.memory_fut, future_to_write), 0)
+            self.memory_past = torch.cat((self.memory_past, past_to_write), 0)
+            self.memory_fut = torch.cat((self.memory_fut, future_to_write), 0)
 
             return prediction, out_weight, writing_prob, tolerance_rate
         else:
