@@ -225,7 +225,7 @@ class model_tran(nn.Module):
             info_future = torch.reshape(output_prova, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
             
             ######################################################################################
-              
+            #print("memoria allocata", torch.cuda.memory_summary())
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
@@ -252,13 +252,7 @@ class model_tran(nn.Module):
             present = coords_next
             input_dec = zero_padding
 
-        print("MEMORIA ALLOCATA 1", torch.cuda.memory_allocated())
-        
-        torch.cuda.empty_cache()
-        total_memory = torch.cuda.get_device_properties(0).total_memory
-        print("total memory", total_memory)
-        # less than 0.5 will be ok:
-        torch.cuda.empty_cache()
+
 
 
         # IRM
