@@ -87,6 +87,7 @@ class model_tran(nn.Module):
         
         # Transformer Model
         self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=1, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
         #la dimensione della feature di info_future è 48
         #d_model: number of expected features
             
