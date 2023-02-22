@@ -324,6 +324,9 @@ class Trainer:
                     past = Variable(past)
                     future = Variable(future)
                     scene_one_hot = Variable(scene_one_hot)
+                    print(index)
+                    print(len(past))
+                    print(len(scene_one_hot))
                     if self.config.cuda:
                         past = past.cuda()
                         future = future.cuda()

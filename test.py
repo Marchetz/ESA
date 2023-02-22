@@ -6,8 +6,8 @@ import torch
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=True)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--past_len", type=int, default=20)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--past_len", type=int, default=10)
     parser.add_argument("--future_len", type=int, default=40)
     parser.add_argument("--dim_embedding_key", type=int, default=48)
 
