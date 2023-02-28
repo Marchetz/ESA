@@ -29,8 +29,8 @@ class model_tran(nn.Module):
         self.similarity = nn.CosineSimilarity(dim=1)
 
         # Memory
-        self.memory_past = model_pretrained.memory_past.type(torch.float16)
-        self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
+        self.memory_past = model_pretrained.memory_past.type(torch.float32)
+        self.memory_fut = model_pretrained.memory_fut.type(torch.float32)
         self.memory_count = []
 
         channel_in = 2
@@ -123,8 +123,9 @@ class model_tran(nn.Module):
             future_embed = torch.transpose(future_embed, 1, 2)
             output_fut, state_fut = self.encoder_fut(future_embed)
 
-            state_past = state_past.squeeze(0)
-            state_fut = state_fut.squeeze(0)
+            state_past = state_past.squeeze(0).type(torch.float16)
+            state_fut = state_fut.squeeze(0).type(torch.float16)
+
 
             self.memory_past = torch.cat((self.memory_past, state_past), 0)
             self.memory_fut = torch.cat((self.memory_fut, state_fut), 0)

@@ -1,0 +1,5 @@
+points of past track: 10
+points of future track: 40
+train size: 9753
+test size: 3169
+batch size: 32
