@@ -21,7 +21,7 @@ class TrackDataset(data.Dataset):
     The building class is merged into the background class
     0:background 1:street 2:sidewalk, 3:building 4: vegetation ---> 0:background 1:street 2:sidewalk, 3: vegetation
     """
-    def __init__(self, tracks, len_past=10, len_future=40, train=False, dim_clip=180):
+    def __init__(self, tracks, len_past=20, len_future=40, train=False, dim_clip=180):
 
         self.tracks = tracks      # dataset dict
         self.dim_clip = dim_clip  # dim_clip*2 is the dimension of scene (pixel)
@@ -71,7 +71,7 @@ class TrackDataset(data.Dataset):
 
                         # filter out noise for non-moving vehicles
                         if np.var(temp_past[:, 0]) < 0.1 and np.var(temp_past[:, 1]) < 0.1:
-                            temp_past = np.zeros((10, 2))
+                            temp_past = np.zeros((20, 2))
                         else:
                             temp_past = temp_past - origin
 

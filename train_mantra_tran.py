@@ -11,7 +11,7 @@ def parse_config():
     parser.add_argument("--learning_rate", type=int, default=0.001)
     parser.add_argument("--max_epochs", type=int, default=100)
 
-    parser.add_argument("--past_len", type=int, default=10)
+    parser.add_argument("--past_len", type=int, default=20)
     parser.add_argument("--future_len", type=int, default=40)
     parser.add_argument("--preds", type=int, default=10)
     parser.add_argument("--dim_embedding_key", type=int, default=48)
