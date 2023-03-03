@@ -31,7 +31,7 @@ class Trainer:
         self.index_qualitative = index_qualitative.dict_test
         self.name_run = 'runs/runs_tran/'
         self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
-        self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info
+        self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info + 'epoch (' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
         if not os.path.exists(self.folder_test):
             os.makedirs(self.folder_test)
         self.folder_test = self.folder_test + '/'
