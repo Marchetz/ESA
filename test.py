@@ -7,7 +7,7 @@ def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=True)
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--past_len", type=int, default=10)
+    parser.add_argument("--past_len", type=int, default=20)
     parser.add_argument("--future_len", type=int, default=40)
     parser.add_argument("--dim_embedding_key", type=int, default=48)
 
@@ -16,7 +16,7 @@ def parse_config():
 
     #'pretrained_models/mantra_tran/model_new'
     #CLASSIC
-    parser.add_argument("--model", default='pretrained_models/MANTRA/model_MANTRA')
+    parser.add_argument("--model", default='pretrained_models/MANTRA/model_mantra_10')
 
     parser.add_argument("--visualize_dataset", default=False)
     parser.add_argument("--saved_memory", default=True)
