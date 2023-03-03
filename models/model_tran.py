@@ -90,6 +90,10 @@ class model_tran(nn.Module):
         print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
         #la dimensione della feature di info_future è 48
         #d_model: number of expected features
+        
+        self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
+        
+        self.embedding = nn.Embedding(self.num_prediction, 48)
             
        
 
@@ -196,15 +200,16 @@ class model_tran(nn.Module):
             src = torch.cat((key, value), -1).cuda()
             
             #one hot encoding per ottenere embedding con il passato
-            one_hot = F.one_hot(torch.arange(0,self.num_prediction*dim_batch).view(self.num_prediction,dim_batch) % query.shape[2]).to("cuda:0")
-                        
+            #one_hot = F.one_hot(torch.arange(0,self.num_prediction*dim_batch).view(self.num_prediction,dim_batch) % query.shape[2]).to("cuda:0")
+            
+            one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)
+            
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
 
             output_prova = self.transformer_model(src, tgt)
             
-            output_prova = torch.tensor(output_prova)
             
             #print("output_prova", output_prova.shape)
                         

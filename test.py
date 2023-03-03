@@ -16,7 +16,7 @@ def parse_config():
 
     #'pretrained_models/mantra_tran/model_new'
     #CLASSIC
-    #parser.add_argument("--model", default='pretrained_models/MANTRA/model_MANTRA')
+    parser.add_argument("--model", default='pretrained_models/MANTRA/model_MANTRA')
 
     parser.add_argument("--visualize_dataset", default=False)
     parser.add_argument("--saved_memory", default=True)

@@ -77,23 +77,26 @@ class Validator():
             "model_classic_flag": config.model_classic_flag
         }
 
-        if config.model_classic_flag:
-            #trick to load pretrained model making with old pytorch version
-            model_path = 'pretrained_models/MANTRA/model_MANTRA'
-            self.model = torch.load(model_path)
-            self.mem_n2n = model_tran(self.settings, self.model)
-            self.mem_n2n.load_state_dict(torch.load('pretrained_models/model_pretrained'), strict=False)
+        # if config.model_classic_flag:
+        #     #trick to load pretrained model making with old pytorch version
+        #     model_path = 'pretrained_models/MANTRA/model_MANTRA'
+        #     self.model = torch.load(model_path)
+        #     self.mem_n2n = model_tran(self.settings, self.model)
+        #     self.mem_n2n.load_state_dict(torch.load('pretrained_models/model_pretrained'), strict=False)
 
-            self.mem_n2n.past_len = config.past_len
-            self.mem_n2n.future_len = config.future_len
-            self.mem_n2n.num_prediction = config.preds
-        else:
-            model_path = 'pretrained_models/MANTRA_ESA/model_k%s' % config.preds
-            self.mem_n2n = torch.load(model_path)
-            self.mem_n2n.past_len = config.past_len
-            self.mem_n2n.future_len = config.future_len
-            self.mem_n2n.num_prediction = config.preds
-            self.mem_n2n.model_classic_flag = config.model_classic_flag
+        #     self.mem_n2n.past_len = config.past_len
+        #     self.mem_n2n.future_len = config.future_len
+        #     self.mem_n2n.num_prediction = config.preds
+        # else:
+        #     model_path = 'pretrained_models/MANTRA_ESA/model_k%s' % config.preds
+        #     self.mem_n2n = torch.load(model_path)
+        #     self.mem_n2n.past_len = config.past_len
+        #     self.mem_n2n.future_len = config.future_len
+        #     self.mem_n2n.num_prediction = config.preds
+        #     self.mem_n2n.model_classic_flag = config.model_classic_flag
+        
+        self.mem_n2n = torch.load(config.model)
+        self.mem_n2n.num_prediction = config.preds
 
         self.EuclDistance = nn.PairwiseDistance(p=2)
         if config.cuda:
