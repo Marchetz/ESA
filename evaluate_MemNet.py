@@ -27,7 +27,7 @@ class Validator():
         :param config: configuration parameters (see test.py)
         """
         self.index_qualitative = index_qualitative.dict_test
-        self.name_test = str(datetime.datetime.now())[:19]
+        self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
         self.folder_test = 'test/' + self.name_test + '_' + config.info
         if not os.path.exists(self.folder_test):
             os.makedirs(self.folder_test)
