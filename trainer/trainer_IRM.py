@@ -193,7 +193,7 @@ class Trainer:
                 self.writer.add_histogram(name, param.data, epoch)
 
         # Save final trained model
-        torch.save(self.mem_n2n, self.folder_test + 'model_mantra_' + self.name_test)
+        torch.save(self.mem_n2n, self.folder_test + 'model_mantra_transformer_%s' % config.preds)
 
     def save_results(self, dict_metrics_test, epoch=0):
         """
