@@ -29,9 +29,10 @@ class Trainer:
         :param config: configuration parameters (see train_mantra_tran.py)
         """
         self.index_qualitative = index_qualitative.dict_test
-        self.name_run = 'runs/runs_tran/'
-        self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
-        self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info + 'epoch (' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
+        self.name_run = 'runs/runs_tran/' + 'runs_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
+        #self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
+        #self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info + 'epoch (' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
+        self.folder_test = 'training/training_tran/' + 'train_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
         if not os.path.exists(self.folder_test):
             os.makedirs(self.folder_test)
         self.folder_test = self.folder_test + '/'
@@ -109,7 +110,7 @@ class Trainer:
         self.scaler = torch.cuda.amp.GradScaler()
 
         # Tensorboard summary: configuration
-        self.writer = SummaryWriter(self.name_run + self.name_test + '_' + config.info)
+        self.writer = SummaryWriter(self.name_run)
         self.writer.add_text('Training Configuration', 'model name: ' + self.mem_n2n.name_model, 0)
         self.writer.add_text('Training Configuration', 'dataset train: ' + str(len(self.data_train)), 0)
         self.writer.add_text('Training Configuration', 'dataset test: ' + str(len(self.data_test)), 0)
@@ -224,14 +225,14 @@ class Trainer:
                 self.writer.add_scalar('dimension_memory/memory', len(self.mem_n2n.memory_past), epoch)
 
                 # Save model checkpoint
-                torch.save(self.mem_n2n, self.folder_test + 'model_tran_epoch_' + str(epoch) + '_' + self.name_test)
+                torch.save(self.mem_n2n, self.folder_test + 'model_tran_epoch_' + str(epoch))
                 self.save_results(dict_metrics_test, epoch=epoch + 1)
 
             for name, param in self.mem_n2n.named_parameters():
                 self.writer.add_histogram(name, param.data, epoch)
 
         # Save final trained model
-        torch.save(self.mem_n2n, self.folder_test + 'model_mantra_' + self.name_test)
+        torch.save(self.mem_n2n, self.folder_test + 'model_mantra_transformer_%s' % config.preds)
 
     def save_results(self, dict_metrics_test, epoch=0):
         """
@@ -423,7 +424,7 @@ class Trainer:
                         if config.cuda:
                             past = past.cuda()
                             future = future.cuda()
-                        #self.mem_n2n.write_in_memory(past, future)
+                        self.mem_n2n.write_in_memory(past, future)
 
         # save memory
         # torch.save(self.mem_n2n.memory_past, self.folder_test + 'memory_past.pt')

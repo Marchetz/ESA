@@ -86,10 +86,8 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=8, num_encoder_layers=16, num_decoder_layers=16).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=1, num_encoder_layers=1, num_decoder_layers=1).cuda()
         print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
-        #la dimensione della feature di info_future è 48
-        #d_model: number of expected features
         
         self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
         
@@ -208,30 +206,16 @@ class model_tran(nn.Module):
                                   
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
 
-            output_prova = self.transformer_model(src, tgt)
+            transformer = self.transformer_model(src, tgt)
             
-            
-            #print("output_prova", output_prova.shape)
                         
             #SAPPIAMO: che il transformer deve essere grande quando info_future
             #fully connected layer per far diminuire la dimensione
-            
-            ###############################################################            
-
-            # out = []
+                 
             out_weight = []
-            # for i_m in range(self.num_prediction):
-            #    out_single, attn_output_weights_single = self.multihead_attn[i_m](query, key, value)
-            #     #out_single = nn.Tanh()(out_single)
-            #     #out_single = nn.Tanh()(self.linear2(self.relu(self.linear1(out_single))))
-            #     out.append(out_single)
-            #     out_weight.append(attn_output_weights_single)
-            # #print("out", len(out))
             
-            info_future = torch.reshape(output_prova, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
+            info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
             
-            ######################################################################################
-            #print("memoria allocata", torch.cuda.memory_summary())
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
