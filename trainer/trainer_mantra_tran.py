@@ -90,7 +90,6 @@ class Trainer:
         self.mem_n2n = model_tran(self.settings, self.model)
         self.save_plot_weight('before')
         self.mem_n2n.load_state_dict(torch.load('pretrained_models/MANTRA/model_pretrained'), strict=False)
-        print("Modello preaddestrato preso con successo")
         self.save_plot_weight('after')
         self.mem_n2n.past_len = config.past_len
         self.mem_n2n.future_len = config.future_len
@@ -196,9 +195,9 @@ class Trainer:
             self.mem_n2n.train()
 
             ###############
-            self._memory_writing(self.config.saved_memory)
+            #self._memory_writing(self.config.saved_memory)
             #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
-            #self.mem_n2n.init_memory(self.data_train)
+            self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))
             print('config.max_epochs', config.max_epochs)
@@ -385,7 +384,7 @@ class Trainer:
                     future = future.cuda()
                     scene_one_hot = scene_one_hot.cuda()
 
-                output = self.mem_n2n(past, scene_one_hot)
+                output, _, _, _ = self.mem_n2n(past, scene_one_hot, future)
 
                 future_repeat = future.unsqueeze(1).repeat(1, self.num_prediction, 1, 1)
                 distances = torch.norm(output - future_repeat, dim=3)
@@ -416,7 +415,7 @@ class Trainer:
             print('memories of pretrained model')
         else:
             with torch.cuda.amp.autocast(enabled=True):
-                #self.mem_n2n.init_memory(self.data_train)
+                self.mem_n2n.init_memory(self.data_train)
                 config = self.config
                 with torch.no_grad():
                     for step, (index, past, future, _, _, _, _, _, _, _) in enumerate(self.train_loader):

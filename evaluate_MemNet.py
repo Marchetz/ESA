@@ -89,11 +89,13 @@ class Validator():
             self.mem_n2n.num_prediction = config.preds
         else:
             model_path = 'pretrained_models/MANTRA_TRANSFORMER/model_mantra_transformer_%s' % config.preds
+            print(model_path)
             self.mem_n2n = torch.load(model_path)
             self.mem_n2n.past_len = config.past_len
             self.mem_n2n.future_len = config.future_len
             self.mem_n2n.num_prediction = config.preds
             self.mem_n2n.model_classic_flag = config.model_classic_flag
+            
         
         self.EuclDistance = nn.PairwiseDistance(p=2)
         if config.cuda:
@@ -327,7 +329,7 @@ class Validator():
                         scene_one_hot = Variable(scene_one_hot)
                         scene_one_hot = scene_one_hot.cuda()
                         self.mem_n2n.write_in_memory(past, future, scene_one_hot)
-                    #else:
+                    else:
                         self.mem_n2n.write_in_memory(past, future)
 
                 # save memory

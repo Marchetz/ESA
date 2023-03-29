@@ -12,7 +12,7 @@ def parse_config():
     parser.add_argument("--dim_embedding_key", type=int, default=48)
 
     parser.add_argument("--model_classic_flag", type=bool, default=False)
-    parser.add_argument("--preds", type=int, default=1)  #1,5,20  -> load a different pretrained model in MANTRA+ESA setting
+    parser.add_argument("--preds", type=int, default=20)  #1,5,20  -> load a different pretrained model in MANTRA+ESA setting
 
     #'pretrained_models/mantra_tran/model_new'
     #CLASSIC

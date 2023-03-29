@@ -5,8 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from models.multihead.activation import MultiheadAttention
 import random
-import gc
-import inspect
 from torch import cuda
 
 
@@ -34,7 +32,7 @@ class model_tran(nn.Module):
         self.similarity = nn.CosineSimilarity(dim=1)
 
         # Memory
-        self.memory_past = model_pretrained.memory_past.type(torch.float16)
+        self.memory_past = model_pretrained.memory_past.type(torch.float)
         self.memory_past_first_shape = self.memory_past.shape
         self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
         self.memory_fut_first_shape = self.memory_fut.shape
@@ -73,10 +71,10 @@ class model_tran(nn.Module):
         self.maxpool2d = torch.nn.MaxPool2d(kernel_size=2, stride=2)
 
         embed_dim = 48
-        num_heads = 8
+        num_heads = 1
         self.multihead_attn = nn.ModuleList([MultiheadAttention(embed_dim, num_heads, kdim=embed_dim, vdim=embed_dim) for i in range(self.num_prediction)])
         self.dropout = nn.Dropout(0.1)
-        self.decoder_layer = nn.TransformerDecoderLayer(d_model=96, nhead=1)
+        self.decoder_layer = nn.TransformerDecoderLayer(d_model=96, nhead=8)
         self.transformer_decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=6)
         self.fc_projector = nn.Linear(96,48)
 
@@ -86,8 +84,10 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=1, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=2, num_encoder_layers=6, num_decoder_layers=6).cuda()
         print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
+        self.linear3 = nn.Linear(96,48)
+        
         
         self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
         
@@ -119,7 +119,7 @@ class model_tran(nn.Module):
         :return: None
         """
 
-        self.memory_past = torch.Tensor().cuda().type(torch.float16)
+        self.memory_past = torch.Tensor().cuda().type(torch.float16)  
         
         self.memory_fut = torch.Tensor().cuda().type(torch.float16)
 
@@ -143,8 +143,8 @@ class model_tran(nn.Module):
             future_embed = torch.transpose(future_embed, 1, 2)
             output_fut, state_fut = self.encoder_fut(future_embed)
 
-            state_past = state_past.squeeze(0)
-            state_fut = state_fut.squeeze(0)
+            state_past = state_past.squeeze(0).type(torch.float16)
+            state_fut = state_fut.squeeze(0).type(torch.float16)
             
             self.memory_past = torch.cat((self.memory_past, state_past), 0)
             
@@ -206,24 +206,15 @@ class model_tran(nn.Module):
                                   
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
 
-            transformer = self.transformer_model(src, tgt)
-            
-                        
-            #SAPPIAMO: che il transformer deve essere grande quando info_future
-            #fully connected layer per far diminuire la dimensione
-                 
+            transformer = self.transformer_model(src, tgt)                 
             out_weight = []
-            
             info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
-            
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
-        
-        linear = nn.Linear(96,48).cuda()
-        
-        info_future = linear(info_future)
+                
+        info_future = self.linear3(info_future)
         
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
@@ -236,14 +227,9 @@ class model_tran(nn.Module):
             output_decoder, state_dec = self.decoder(input_dec, state_dec)
             displacement_next = self.FC_output(output_decoder)
             coords_next = present + displacement_next.squeeze(0).unsqueeze(1)
-            
-            prediction = torch.cat((prediction, coords_next), 1)         
-            
+            prediction = torch.cat((prediction, coords_next), 1)           
             present = coords_next
             input_dec = zero_padding
-
-
-
 
         # IRM
         # comment: il modulo Iterative refinement serve per spostare quelle predizioni generate che vanno fuori strada dentro la strada
@@ -333,7 +319,7 @@ class model_tran(nn.Module):
         dim_batch = past.size()[0]
         zero_padding = torch.zeros(1, dim_batch * num_prediction, self.dim_embedding_key * 2).cuda()
         prediction = torch.Tensor().cuda().type(torch.float16)
-        present_temp = past[:, -1].unsqueeze(1)
+        present_temp = past[:, -1].unsqueeze(1).type(torch.float16)
         
         
 
