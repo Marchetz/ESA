@@ -2,4 +2,8 @@ esa/**
 runs/**
 test/**
 training/**
-
+*/*.pyc
+*.pyc
+*/*/*.pyc
+.vscode
+__pycache__
