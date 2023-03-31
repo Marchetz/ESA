@@ -84,7 +84,7 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=2, num_encoder_layers=6, num_decoder_layers=6).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=2, num_encoder_layers=4, num_decoder_layers=4).cuda()
         print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
         self.linear3 = nn.Linear(96,48)
         
