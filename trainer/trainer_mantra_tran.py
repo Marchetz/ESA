@@ -197,7 +197,7 @@ class Trainer:
             ###############
             #self._memory_writing(self.config.saved_memory)
             #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
-            self.mem_n2n.init_memory(self.data_train)
+            #self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))
             print('config.max_epochs', config.max_epochs)
@@ -384,7 +384,7 @@ class Trainer:
                     future = future.cuda()
                     scene_one_hot = scene_one_hot.cuda()
 
-                output, _, _, _ = self.mem_n2n(past, scene_one_hot, future)
+                output = self.mem_n2n(past, scene_one_hot)
 
                 future_repeat = future.unsqueeze(1).repeat(1, self.num_prediction, 1, 1)
                 distances = torch.norm(output - future_repeat, dim=3)

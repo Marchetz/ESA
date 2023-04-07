@@ -32,10 +32,10 @@ class model_tran(nn.Module):
         self.similarity = nn.CosineSimilarity(dim=1)
 
         # Memory
-        self.memory_past = model_pretrained.memory_past.type(torch.float)
-        self.memory_past_first_shape = self.memory_past.shape
-        self.memory_fut = model_pretrained.memory_fut.type(torch.float16)
-        self.memory_fut_first_shape = self.memory_fut.shape
+        self.memory_past = model_pretrained.memory_past.type(torch.float32)
+
+        self.memory_fut = model_pretrained.memory_fut.type(torch.float32)
+
         
         self.memory_count = []
         
@@ -84,9 +84,9 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, dim_feedforward=48, nhead=2, num_encoder_layers=4, num_decoder_layers=4).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=8, num_decoder_layers=8).cuda()
         print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
-        self.linear3 = nn.Linear(96,48)
+        #self.linear3 = nn.Linear(96,48)
         
         
         self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
@@ -214,17 +214,17 @@ class model_tran(nn.Module):
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
         present = present_temp.repeat_interleave(self.num_prediction, dim=0)
                 
-        info_future = self.linear3(info_future)
+        info_future = self.fc_projector(info_future)
         
         #comment: Dato lo stato passato della traiettoria corrente e le feature lette dalla memoria viene generata la traiettoria
         #quindi si concatena le due informazioni e con il decoder e il FC_output vengono generati i punti 2d delle traiettorie future
         
         info_total = torch.cat((state_past, info_future), 2)
-
         input_dec = info_total
         state_dec = zero_padding
         for i in range(self.future_len):
             output_decoder, state_dec = self.decoder(input_dec, state_dec)
+            
             displacement_next = self.FC_output(output_decoder)
             coords_next = present + displacement_next.squeeze(0).unsqueeze(1)
             prediction = torch.cat((prediction, coords_next), 1)           
