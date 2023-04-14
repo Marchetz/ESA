@@ -2,6 +2,7 @@ import argparse
 from trainer import trainer_mantra_tran
 import torch
 
+
 PYTORCH_CUDA_ALLOC_CONF="garbage_collection_threshold:0.6,max_split_size_mb:128"
 
 def parse_config():

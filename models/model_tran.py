@@ -90,7 +90,7 @@ class model_tran(nn.Module):
         
         
         self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
-        
+
         self.embedding = nn.Embedding(self.num_prediction, 48)
             
        
@@ -199,8 +199,21 @@ class model_tran(nn.Module):
             
             #one hot encoding per ottenere embedding con il passato
             #one_hot = F.one_hot(torch.arange(0,self.num_prediction*dim_batch).view(self.num_prediction,dim_batch) % query.shape[2]).to("cuda:0")
+            #embedding_rand = torch.rand()
+            #noise = torch.rand(self.num_prediction).unsqueeze(0).cuda()
             
-            one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)
+            #self.input_embedding = torch.arange(self.num_prediction).unsqueeze(0).cuda()
+            
+            #noise = torch.rand(self.num_prediction).unsqueeze(0)
+            #noise = torch.round(noise).int().cuda()
+            
+            #one_hot = self.embedding(noise.repeat(dim_batch, 1)).permute(1,0,2)
+            #one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)
+            
+            random_int_tensor = torch.randint(low=0, high=20, size=(dim_batch, self.num_prediction), dtype=torch.long).cuda()
+             
+            one_hot = self.embedding(random_int_tensor).permute(1,0,2)
+            #one_hot = self.embedding(noise.repeat(dim_batch, 1)).permute(1,0,2)
             
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
