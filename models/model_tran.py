@@ -204,7 +204,7 @@ class model_tran(nn.Module):
             
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
-            tgt = torch.cat((one_hot,one_hot), -1).cuda()
+            tgt = torch.cat((tgt_query,one_hot), -1).cuda()
 
             transformer = self.transformer_model(src, tgt)                 
             out_weight = []
