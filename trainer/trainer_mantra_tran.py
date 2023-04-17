@@ -385,7 +385,7 @@ class Trainer:
                     scene_one_hot = scene_one_hot.cuda()
 
                 output = self.mem_n2n(past, scene_one_hot)
-
+                
                 future_repeat = future.unsqueeze(1).repeat(1, self.num_prediction, 1, 1)
                 distances = torch.norm(output - future_repeat, dim=3)
                 distances_mean = torch.mean(distances, dim=2)
