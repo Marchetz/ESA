@@ -84,8 +84,10 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=8, num_decoder_layers=8).cuda()
-        print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
+        self.transformer_model = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        self.transformer_model0 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        self.transformer_model1 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        #print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
         #self.linear3 = nn.Linear(96,48)
         
         
@@ -157,6 +159,7 @@ class model_tran(nn.Module):
         :param scene: surrounding map
         :return: predicted future
         """
+        #scene = None
         dim_batch = past.size()[0]
         zero_padding = torch.zeros(1, dim_batch * self.num_prediction, self.dim_embedding_key * 2).cuda()
         prediction = torch.Tensor().cuda().type(torch.float16)
@@ -204,11 +207,30 @@ class model_tran(nn.Module):
             
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
+            
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
-
-            transformer = self.transformer_model(src, tgt)                 
+            
+            #tgt = torch.rand_like(tgt)
+            
+            #TRANSFORMER MULTIPLI              
+            #transformer0 = self.transformer_model0(src, tgt[0].unsqueeze(0))    
+            #transformer1 = self.transformer_model1(src, tgt[1].unsqueeze(0))  
+            
+            #transformer = torch.cat((transformer0,transformer1),0)
+            
+            transformer = self.transformer_model(src, tgt)
+            
+            
+            #transformer = torch.rand_like(transformer)                    
             out_weight = []
-            info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
+            
+            
+            #########
+            transformer = transformer.permute(1,0,2)
+            #########
+            
+            
+            info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model0.d_model))
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)
