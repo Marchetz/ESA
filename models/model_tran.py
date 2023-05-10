@@ -25,6 +25,7 @@ class model_tran(nn.Module):
         self.past_len = settings["past_len"] 
         self.future_len = settings["future_len"]
         self.model_classic_flag = settings["model_classic_flag"]
+        self.normalized = settings["normalized"]
 
         # similarity criterion
         self.weight_read = []
@@ -84,9 +85,9 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
-        self.transformer_model0 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
-        self.transformer_model1 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, nhead=3, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        #self.transformer_model0 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        #self.transformer_model1 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
         #print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
         #self.linear3 = nn.Linear(96,48)
         
@@ -167,7 +168,6 @@ class model_tran(nn.Module):
 
 
         # past temporal encoding
-        # comment: la traiettoria viene codificata dentro una feature tramite l'encoder
         past = torch.transpose(past, 1, 2)
         story_embed = self.relu(self.conv_past(past))
         story_embed = torch.transpose(story_embed, 1, 2)
@@ -184,53 +184,37 @@ class model_tran(nn.Module):
             ind = self.index_max.flatten()
             info_future = self.memory_fut[ind].unsqueeze(0)
         else:
-            # ESA CONTROLLER #################################################
-            #TODO: ECCO, VOI DOVETE AGIRE IN QUESTO PEZZO
-            #comment: qui viene usata una multihead attention dei transformer per fare funziona il controllore ESA
-            #use a MultiheadAttention
+            # ESA CONTROLLER #     
             
-            query = state_past
-                        
-            key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
-            value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
-                        
-            ############################################
-            
+            one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)       
+            if self.normalized:
+                query = F.normalize(state_past,p=2, dim=1)
+                key = F.normalize(self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1)
+                value = F.normalize(self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1)
+                one_hot = F.normalize(one_hot, p=2, dim=1)
+                
+                
+            else:          
+                query = state_past             
+                key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
+                value = self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1)
             
             # source key + value concatenati
             src = torch.cat((key, value), -1).cuda()
-            
-            #one hot encoding per ottenere embedding con il passato
-            #one_hot = F.one_hot(torch.arange(0,self.num_prediction*dim_batch).view(self.num_prediction,dim_batch) % query.shape[2]).to("cuda:0")
             
             one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)
             
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
-            
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()
             
-            #tgt = torch.rand_like(tgt)
-            
-            #TRANSFORMER MULTIPLI              
-            #transformer0 = self.transformer_model0(src, tgt[0].unsqueeze(0))    
-            #transformer1 = self.transformer_model1(src, tgt[1].unsqueeze(0))  
-            
-            #transformer = torch.cat((transformer0,transformer1),0)
-            
             transformer = self.transformer_model(src, tgt)
-            
-            
-            #transformer = torch.rand_like(transformer)                    
+                     
             out_weight = []
             
-            
-            #########
             transformer = transformer.permute(1,0,2)
-            #########
-            
-            
-            info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model0.d_model))
+
+            info_future = torch.reshape(transformer, (1,self.num_prediction*dim_batch,self.transformer_model.d_model))
 
         # DECODING
         state_past = state_past.repeat_interleave(self.num_prediction, dim=1)

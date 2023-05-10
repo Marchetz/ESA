@@ -32,7 +32,12 @@ class Trainer:
         self.name_run = 'runs/runs_tran/' + 'runs_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
         #self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
         #self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info + 'epoch (' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
-        self.folder_test = 'training/training_tran/' + 'train_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
+        self.normalized = config.normalized
+        if self.normalized:
+            normalize_folder_name = "Normalized"
+        else:
+            normalize_folder_name = "Not_Normalized"
+        self.folder_test = 'training/training_tran/' + 'train_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')_' + str(normalize_folder_name)
         if not os.path.exists(self.folder_test):
             os.makedirs(self.folder_test)
         self.folder_test = self.folder_test + '/'
@@ -76,7 +81,8 @@ class Trainer:
             "num_prediction": self.num_prediction,
             "past_len": config.past_len,
             "future_len": config.future_len,
-            "model_classic_flag": config.model_classic_flag
+            "model_classic_flag": config.model_classic_flag,
+            "normalized": config.normalized
         }
         self.max_epochs = config.max_epochs
         # load pretrained model and create memory_model
@@ -184,7 +190,7 @@ class Trainer:
         # Load memory
         # populate the memory
         start = time.time()
-        self._memory_writing(self.config.saved_memory)
+        #self._memory_writing(self.config.saved_memory)
         #self.writer.add_text('Training Configuration', 'memory size: ' + str(len(self.mem_n2n.memory_past)), 0)
         end = time.time()
         print('writing time: ' + str(end-start))
@@ -197,7 +203,7 @@ class Trainer:
             ###############
             #self._memory_writing(self.config.saved_memory)
             #comment: per ogni nuova epoca inizializzo la memoria, ogni volta che il controllore di lettura migliora voglio che scriva in memoria roba migliore
-            #self.mem_n2n.init_memory(self.data_train)
+            self.mem_n2n.init_memory(self.data_train)
 
             print('epoch: ' + str(epoch))
             print('config.max_epochs', config.max_epochs)
@@ -384,7 +390,7 @@ class Trainer:
                     future = future.cuda()
                     scene_one_hot = scene_one_hot.cuda()
 
-                output = self.mem_n2n(past, scene_one_hot)
+                output, _, _, _ = self.mem_n2n(past, scene_one_hot, future)
 
                 future_repeat = future.unsqueeze(1).repeat(1, self.num_prediction, 1, 1)
                 distances = torch.norm(output - future_repeat, dim=3)

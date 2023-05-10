@@ -1,6 +1,7 @@
 esa/**
 runs/**
 test/**
+test500/**
 training/**
 */*.pyc
 *.pyc
