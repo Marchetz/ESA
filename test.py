@@ -13,6 +13,9 @@ def parse_config():
 
     parser.add_argument("--model_classic_flag", type=bool, default=False)
     parser.add_argument("--preds", type=int, default=20)  #1,5,20  -> load a different pretrained model in MANTRA+ESA setting
+    parser.add_argument("--normalized", type=bool, default=False)
+    parser.add_argument("--normalized_type", type=int, default=1)
+    parser.add_argument("--nhead", type=int, default=6)
 
     #'pretrained_models/mantra_tran/model_new'
     #CLASSIC
@@ -21,7 +24,7 @@ def parse_config():
     parser.add_argument("--visualize_dataset", default=False)
     parser.add_argument("--saved_memory", default=True)
     parser.add_argument("--memories_path", default='pretrained_models/MANTRA/memories/')
-    parser.add_argument("--withIRM", default=True, help='generate predictions with/without IRM')
+    parser.add_argument("--withIRM", default=False, help='generate predictions with/without IRM')
     parser.add_argument("--saveImages", default='Subset',
                         help=
                         '''

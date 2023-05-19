@@ -29,15 +29,20 @@ class Trainer:
         :param config: configuration parameters (see train_mantra_tran.py)
         """
         self.index_qualitative = index_qualitative.dict_test
-        self.name_run = 'runs/runs_tran/' + 'runs_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
+        
         #self.name_test = str(datetime.datetime.now().strftime("%d-%m-%Y %H.%M.%S"))[:19]
         #self.folder_test = 'training/training_tran/' + self.name_test + '_' + config.info + 'epoch (' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')'
         self.normalized = config.normalized
+        self.normalized_type = config.normalized_type
         if self.normalized:
-            normalize_folder_name = "Normalized"
+            if self.normalized_type == 1:
+                normalize_folder_name = "Normalized_L1"
+            if self.normalized_type == 2:
+                normalize_folder_name = "Normalized_L2"
         else:
             normalize_folder_name = "Not_Normalized"
-        self.folder_test = 'training/training_tran/' + 'train_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')_' + str(normalize_folder_name)
+        self.folder_test = 'training/training_tran/' + 'train_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')_' + str(normalize_folder_name) + '_nh(' + str(config.nhead) + ')'
+        self.name_run = 'runs/runs_tran/' + 'runs_' + 'epoch(' + str(config.max_epochs) + ')_preds(' + str(config.preds) + ')_' + str(normalize_folder_name) + '_nh(' + str(config.nhead) + ')'
         if not os.path.exists(self.folder_test):
             os.makedirs(self.folder_test)
         self.folder_test = self.folder_test + '/'
@@ -82,7 +87,9 @@ class Trainer:
             "past_len": config.past_len,
             "future_len": config.future_len,
             "model_classic_flag": config.model_classic_flag,
-            "normalized": config.normalized
+            "normalized": config.normalized,
+            "normalized_type": config.normalized_type,
+            "nhead": config.nhead
         }
         self.max_epochs = config.max_epochs
         # load pretrained model and create memory_model
@@ -246,8 +253,8 @@ class Trainer:
         :param epoch: epoch index (default: 0)
         :return: None
         """
-        self.file = open(self.folder_test + "results.txt", "w")
-        self.file.write("TEST:" + '\n')
+        self.file = open(self.folder_test + "results_epoch_" + str(epoch) + ".txt", "w")
+        self.file.write("TEST-TRAIN:" + '\n')
         self.file.write("split test: " + str(self.data_test.ids_split_test) + '\n')
         self.file.write("num_predictions:" + str(self.config.preds) + '\n')
         self.file.write("memory size: " + str(len(self.mem_n2n.memory_past)) + '\n')

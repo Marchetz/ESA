@@ -26,6 +26,8 @@ class model_tran(nn.Module):
         self.future_len = settings["future_len"]
         self.model_classic_flag = settings["model_classic_flag"]
         self.normalized = settings["normalized"]
+        self.normalized_type = settings["normalized_type"]
+        self.nhead = settings["nhead"]
 
         # similarity criterion
         self.weight_read = []
@@ -85,7 +87,7 @@ class model_tran(nn.Module):
         
         
         # Transformer Model
-        self.transformer_model = nn.Transformer(d_model=96, nhead=3, num_encoder_layers=1, num_decoder_layers=1).cuda()
+        self.transformer_model = nn.Transformer(d_model=96, nhead=self.nhead, num_encoder_layers=1, num_decoder_layers=1).cuda()
         #self.transformer_model0 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
         #self.transformer_model1 = nn.Transformer(d_model=96, nhead=6, num_encoder_layers=1, num_decoder_layers=1).cuda()
         #print("Modello di transformer: " + "nhead: " + str(self.transformer_model.nhead) + " num_encoder_layers: " + str(self.transformer_model.encoder.num_layers) + " num_decoder_layers: " + str(self.transformer_model.decoder.num_layers))
@@ -188,12 +190,16 @@ class model_tran(nn.Module):
             
             one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)       
             if self.normalized:
-                query = F.normalize(state_past,p=2, dim=1)
-                key = F.normalize(self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1)
-                value = F.normalize(self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1)
-                one_hot = F.normalize(one_hot, p=2, dim=1)
-                
-                
+                        if self.normalized_type == 1:
+                                            query = F.normalize(state_past, p=1, dim=1)
+                                            key = F.normalize(self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1), p=1, dim=1)
+                                            value = F.normalize(self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1), p=1, dim=1)
+                                            one_hot = F.normalize(one_hot, p=1, dim=1)
+                        if self.normalized_type == 2:
+                                            query = F.normalize(state_past,p=2, dim=1) 
+                                            key = F.normalize(self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1) 
+                                            value = F.normalize(self.memory_fut.unsqueeze(1).repeat(1, dim_batch, 1),p=2, dim=1) 
+                                            one_hot = F.normalize(one_hot, p=2, dim=1)                
             else:          
                 query = state_past             
                 key = self.memory_past.unsqueeze(1).repeat(1, dim_batch, 1)
@@ -201,9 +207,7 @@ class model_tran(nn.Module):
             
             # source key + value concatenati
             src = torch.cat((key, value), -1).cuda()
-            
-            one_hot = self.embedding(self.input_embedding.repeat(dim_batch, 1)).permute(1,0,2)
-            
+               
             tgt_query = query.repeat(self.num_prediction,1,1).cuda()
                                   
             tgt = torch.cat((tgt_query,one_hot), -1).cuda()

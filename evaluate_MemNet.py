@@ -74,8 +74,11 @@ class Validator():
             "num_prediction": config.preds,
             "past_len": config.past_len,
             "future_len": config.future_len,
-            "model_classic_flag": config.model_classic_flag
-        }
+            "model_classic_flag": config.model_classic_flag,
+            "normalized": config.normalized,
+            "normalized_type": config.normalized_type,
+            "nhead": config.nhead
+        }    
 
         if config.model_classic_flag:
             #trick to load pretrained model making with old pytorch version
@@ -95,6 +98,8 @@ class Validator():
             self.mem_n2n.future_len = config.future_len
             self.mem_n2n.num_prediction = config.preds
             self.mem_n2n.model_classic_flag = config.model_classic_flag
+            self.mem_n2n.normalized = config.normalized
+
             
         
         self.EuclDistance = nn.PairwiseDistance(p=2)
